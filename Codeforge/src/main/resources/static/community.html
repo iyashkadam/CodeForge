@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community - CodeForge</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <h1 id="courseTitle">Community</h1>
+    <div class="header-nav">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="my-enrollments.html">My Enrollments</a>
+        <a href="#" onclick="logout()">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <a href="dashboard.html" class="back-link">← Back to Courses</a>
+
+    <div class="community-container">
+
+        <!-- Members -->
+        <div class="members-section">
+            <div class="members-header">Community Members</div>
+            <div class="members-list" id="members">
+                <div class="loading">Loading members...</div>
+            </div>
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-section">
+            <div class="chat-header">
+                <span>Community Chat</span>
+                <span class="chat-status">Online</span>
+            </div>
+
+            <div class="chat-messages" id="chatBox">
+                <div class="loading">Loading messages...</div>
+            </div>
+
+            <div class="chat-input-container">
+                <input
+                        type="text"
+                        id="messageInput"
+                        placeholder="Type your message..."
+                >
+                <button class="btn btn-primary" id="sendBtn">Send</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    // 🔐 Auth guard
+    requireAuth();
+
+    const params = new URLSearchParams(window.location.search);
+    const courseId = params.get("courseId");
+    const title = params.get("title");
+
+    document.getElementById("courseTitle").innerText =
+        title ? decodeURIComponent(title) : "Community";
+
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+
+    // Initial load
+    loadMembers();
+    loadMessages();
+    setInterval(loadMessages, 8000);
+
+    // ---------------- FUNCTIONS ----------------
+
+    async function loadMembers() {
+        try {
+            const members = await apiFetch(`/api/enrollments/course/${courseId}`);
+
+            const container = document.getElementById("members");
+            container.innerHTML = "";
+
+            if (!members || members.length === 0) {
+                container.innerHTML = "<div class='empty-state'>No members</div>";
+                return;
+            }
+
+            members.forEach(m => {
+                container.innerHTML += `
+                    <div class="member-item">
+                        <div class="member-avatar">
+                            ${m.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="member-info">
+                            <div class="member-name">${escapeHtml(m.name)}</div>
+                            <div class="member-email">${escapeHtml(m.email)}</div>
+                            <div class="member-branch">${escapeHtml(m.branch)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            console.error("Failed to load members", err);
+        }
+    }
+
+let lastMessageCount = 0;
+async function loadMessages() {
+    try {
+        const res = await apiFetch(`/api/chat/${courseId}`);
+        const messages = res;
+
+        if (messages.length === lastMessageCount) return;
+
+        lastMessageCount = messages.length;
+
+        const box = document.getElementById("chatBox");
+        box.innerHTML = "";
+
+        messages.forEach(m => {
+            box.innerHTML += `
+              <div class="chat-message other">
+                <div class="message-bubble">${escapeHtml(m.content)}</div>
+                <div class="message-meta">
+                  <span class="message-sender">${m.senderName}</span>
+                  <span>${new Date(m.sentAt).toLocaleTimeString()}</span>
+                </div>
+              </div>
+            `;
+        });
+
+        box.scrollTop = box.scrollHeight;
+    } catch (err) {
+        console.error("Failed to load messages", err);
+    }
+}
+
+    async function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const content = input.value.trim();
+
+        if (!content) return;
+
+        try {
+            await apiFetch(`/api/chat/${courseId}`, {
+                method: "POST",
+                body: JSON.stringify({ content })
+            });
+
+            input.value = "";
+            loadMessages();
+        } catch (err) {
+            console.error("Failed to send message", err);
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CodeForge - Academic Course Management System. Login to access your courses and learning materials.">
+    <title>Login - CodeForge</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <h1>Code<span>Forge</span></h1>
+            <p>Academic Course Management System</p>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        required
+                        autocomplete="email"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="loginBtn">
+                Sign In
+            </button>
+        </form>
+
+        <div class="auth-links">
+            <p>Don't have an account? <a href="register.html">Register here</a></p>
+        </div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    // Redirect if already logged in
+    redirectIfAuthenticated();
+
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      // Validation
+      if (!validateEmail(email)) {
+        showMessage('messageContainer', 'Please enter a valid email address', 'error');
+        return;
+      }
+
+      if (!validatePassword(password)) {
+        showMessage('messageContainer', 'Password must be at least 6 characters', 'error');
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in...';
+
+      try {
+        const result = await login(email, password);
+
+        showMessage('messageContainer', 'Login successful! Redirecting...', 'success');
+
+        setTimeout(() => {
+          if (result.role === 'ADMIN') {
+            window.location.href = 'admin-dashboard.html';
+          } else {
+            window.location.href = 'dashboard.html';
+          }
+        }, 500);
+      } catch (error) {
+        showMessage('messageContainer', error.message || 'Login failed. Please check your credentials.', 'error');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+      }
+    });
+</script>
+</body>
+</html>

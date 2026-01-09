@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CodeForge - View students enrolled in a course.">
+    <title>Enrolled Students - CodeForge</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="dashboard">
+    <nav class="navbar">
+        <a href="admin-dashboard.html" class="navbar-brand">Code<span>Forge</span></a>
+        <div class="navbar-nav">
+            <a href="admin-dashboard.html">Dashboard</a>
+            <span class="badge badge-admin">ADMIN</span>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 id="pageTitle">Enrolled Students</h1>
+            <p id="pageSubtitle">Loading course information...</p>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <a href="admin-dashboard.html" class="btn btn-outline btn-sm">← Back to Dashboard</a>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h2>Student List</h2>
+            </div>
+            <div id="studentsContainer">
+                <div class="loading">Loading students...</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    // Check authentication and role
+    if (!requireRole('ADMIN')) {
+      // Will redirect automatically
+    }
+
+    // Get course ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const courseId = urlParams.get('courseId');
+
+    if (!courseId) {
+      window.location.href = 'admin-dashboard.html';
+    }
+
+    async function loadCourseInfo() {
+      try {
+        const courses = await getCourses();
+        const course = courses.find(c => c.id == courseId);
+
+        if (course) {
+          document.getElementById('pageTitle').textContent = `Students in: ${course.name || course.title}`;
+          document.getElementById('pageSubtitle').textContent = `Course Code: ${course.code || 'N/A'}`;
+        }
+      } catch (error) {
+        console.error('Failed to load course info:', error);
+      }
+    }
+
+    async function loadStudents() {
+      const container = document.getElementById('studentsContainer');
+
+      try {
+        const enrollments = await getEnrolledStudents(courseId);
+
+        if (!enrollments || enrollments.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <h3>No Students Enrolled</h3>
+              <p>No students have enrolled in this course yet.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Student Name</th>
+                <th>Email</th>
+                <th>Branch</th>
+                <th>Enrolled On</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${enrollments.map((enrollment, index) => {
+                const student = enrollment.student || enrollment.user || enrollment;
+                return `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td>${escapeHtml(student.name || 'N/A')}</td>
+                    <td>${escapeHtml(student.email || 'N/A')}</td>
+                    <td>${escapeHtml(student.branch || 'N/A')}</td>
+                    <td>${formatDate(enrollment.enrolledAt || enrollment.createdAt)}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (error) {
+        container.innerHTML = `
+          <div class="message message-error">
+            Failed to load students: ${escapeHtml(error.message)}
+          </div>
+        `;
+      }
+    }
+
+    // Initial load
+    loadCourseInfo();
+    loadStudents();
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CodeForge - View and manage your enrolled courses.">
+    <title>My Enrollments - CodeForge</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="dashboard">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dashboard.html" class="navbar-brand">Code<span>Forge</span></a>
+        <div class="navbar-nav">
+            <a href="dashboard.html">All Courses</a>
+            <a href="my-enrollments.html" class="active">My Enrollments</a>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>My Enrollments</h1>
+            <p>Courses you are currently enrolled in</p>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <div id="enrollmentsContainer" class="cards-grid">
+            <div class="loading">Loading enrollments...</div>
+        </div>
+    </main>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    // 🔐 Auth Guard
+    requireRole('STUDENT');
+
+    async function loadEnrollments() {
+      const container = document.getElementById("enrollmentsContainer");
+
+      try {
+        const enrollments = await getMyEnrollments();
+
+        // No enrollments
+        if (!enrollments || enrollments.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h3>No Enrollments Yet</h3>
+              <p>
+                You haven't enrolled in any courses.
+                <a href="dashboard.html">Browse courses</a> to get started.
+              </p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render enrollments
+        container.innerHTML = enrollments.map(enrollment => `
+          <div class="card">
+            <div class="card-header">
+              <h3>${escapeHtml(enrollment.courseTitle)}</h3>
+            </div>
+
+            <div class="card-body">
+              <p>${escapeHtml(enrollment.courseDescription || "No description available")}</p>
+
+              <p>
+                <strong>Enrolled:</strong>
+                ${formatDate(enrollment.enrolledAt)}
+              </p>
+
+              <div class="card-actions">
+                <button
+                  class="btn btn-danger btn-sm"
+                  onclick="handleUnenroll(${enrollment.courseId})">
+                  Unenroll
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join("");
+
+      } catch (error) {
+        container.innerHTML = `
+          <div class="message message-error">
+            Failed to load enrollments: ${escapeHtml(error.message)}
+          </div>
+        `;
+      }
+    }
+
+    async function handleUnenroll(courseId) {
+      if (!confirm("Are you sure you want to unenroll from this course?")) {
+        return;
+      }
+
+      try {
+        await unenrollFromCourse(courseId);
+        showMessage("messageContainer", "Successfully unenrolled from course.", "success");
+        loadEnrollments();
+      } catch (error) {
+        showMessage("messageContainer", error.message || "Failed to unenroll", "error");
+      }
+    }
+
+    // Initial Load
+    loadEnrollments();
+</script>
+
+</body>
+</html>

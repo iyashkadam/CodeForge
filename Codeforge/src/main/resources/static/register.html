@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create your CodeForge account to access courses and learning materials.">
+    <title>Register - CodeForge</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <h1>Code<span>Forge</span></h1>
+            <p>Create your student account</p>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="Enter your full name"
+                        required
+                        maxlength="100"
+                        autocomplete="name"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        required
+                        maxlength="255"
+                        autocomplete="email"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Create a password (min 6 characters)"
+                        required
+                        minlength="6"
+                        autocomplete="new-password"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="branch">Branch / Department</label>
+                <select id="branch" name="branch" required>
+                    <option value="">Select your branch</option>
+                    <option value="CSE">Computer Science & Engineering</option>
+                    <option value="ECE">Electronics & Communication</option>
+                    <option value="EEE">Electrical & Electronics</option>
+                    <option value="ME">Mechanical Engineering</option>
+                    <option value="CE">Civil Engineering</option>
+                    <option value="IT">Information Technology</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="registerBtn">
+                Create Account
+            </button>
+        </form>
+
+        <div class="auth-links">
+            <p>Already have an account? <a href="index.html">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    // Redirect if already logged in
+    redirectIfAuthenticated();
+
+    const registerForm = document.getElementById('registerForm');
+    const registerBtn = document.getElementById('registerBtn');
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const branch = document.getElementById('branch').value;
+
+      // Validation
+      if (!validateRequired(name)) {
+        showMessage('messageContainer', 'Please enter your full name', 'error');
+        return;
+      }
+
+      if (!validateEmail(email)) {
+        showMessage('messageContainer', 'Please enter a valid email address', 'error');
+        return;
+      }
+
+      if (!validatePassword(password)) {
+        showMessage('messageContainer', 'Password must be at least 6 characters', 'error');
+        return;
+      }
+
+      if (!validateRequired(branch)) {
+        showMessage('messageContainer', 'Please select your branch', 'error');
+        return;
+      }
+
+      registerBtn.disabled = true;
+      registerBtn.textContent = 'Creating account...';
+
+      try {
+        await register(name, email, password, branch);
+
+        showMessage('messageContainer', 'Account created successfully! Redirecting to login...', 'success');
+
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+      } catch (error) {
+        showMessage('messageContainer', error.message || 'Registration failed. Please try again.', 'error');
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Create Account';
+      }
+    });
+</script>
+</body>
+</html>

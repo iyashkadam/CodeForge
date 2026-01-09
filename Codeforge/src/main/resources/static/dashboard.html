@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CodeForge Student Dashboard - Browse and enroll in courses.">
+    <title>Student Dashboard - CodeForge</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="dashboard">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dashboard.html" class="navbar-brand">Code<span>Forge</span></a>
+        <div class="navbar-nav">
+            <a href="dashboard.html" class="active">All Courses</a>
+            <a href="my-enrollments.html">My Enrollments</a>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Available Courses</h1>
+            <p>Browse and enroll in courses to start learning</p>
+        </div>
+
+        <!-- Message -->
+        <div id="messageContainer"></div>
+
+        <!-- Search Box -->
+        <div class="search-box">
+            <input
+                    type="text"
+                    id="searchInput"
+                    class="search-input"
+                    placeholder="Search courses by title or description..."
+                    oninput="handleSearch()"
+            >
+            <button class="btn btn-outline" onclick="clearSearch()">Clear</button>
+        </div>
+
+        <!-- Courses -->
+        <div id="coursesContainer" class="cards-grid">
+            <div class="loading">Loading courses...</div>
+        </div>
+    </main>
+</div>
+
+<!-- Scripts -->
+<script src="js/app.js"></script>
+<script>
+    // 🔐 Role Guard
+    requireRole('STUDENT');
+
+    let enrolledCourseIds = new Set();
+    let allCourses = [];
+
+    // Load student's enrollments
+    async function loadEnrollments() {
+        try {
+            const enrollments = await getMyEnrollments();
+            enrolledCourseIds = new Set(
+                enrollments.map(e => e.courseId || e.course?.id)
+            );
+        } catch (error) {
+            console.error('Failed to load enrollments:', error);
+        }
+    }
+
+    // Load all courses
+    async function loadCourses() {
+        const container = document.getElementById('coursesContainer');
+        try {
+            await loadEnrollments();
+            allCourses = await getCourses();
+            renderCourses(allCourses);
+        } catch (error) {
+            container.innerHTML =
+                `<div class="message message-error">
+                    Failed to load courses
+                 </div>`;
+        }
+    }
+
+    // Search handler
+    function handleSearch() {
+        const term = document.getElementById('searchInput').value;
+        renderCourses(filterCourses(allCourses, term));
+    }
+
+    // Clear search
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        renderCourses(allCourses);
+    }
+
+    // Render courses
+    function renderCourses(courses) {
+        const container = document.getElementById('coursesContainer');
+
+        if (!courses || courses.length === 0) {
+            container.innerHTML =
+                '<div class="empty-state"><h3>No Courses Found</h3></div>';
+            return;
+        }
+
+        container.innerHTML = courses.map(course => {
+            const isEnrolled = enrolledCourseIds.has(course.id);
+
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <h3>${escapeHtml(course.name || course.title)}</h3>
+                        <p>${escapeHtml(course.code || '')}</p>
+                    </div>
+
+                    <div class="card-body">
+                        <p>${escapeHtml(course.description || 'No description')}</p>
+
+                        <div class="card-actions">
+                            ${
+                                isEnrolled
+                                    ? `
+                                        <span class="badge badge-student">✓ Enrolled</span>
+                                        <a
+                                            href="community.html?courseId=${course.id}&title=${encodeURIComponent(course.name || course.title)}"
+                                            class="btn btn-outline">
+                                            View Community
+                                        </a>
+                                      `
+                                    : `
+                                        <button
+                                            class="btn btn-success"
+                                            onclick="handleEnroll(${course.id})">
+                                            Enroll Now
+                                        </button>
+                                      `
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Enroll handler
+    async function handleEnroll(courseId) {
+        try {
+            await enrollInCourse(courseId);
+            showMessage('messageContainer', 'Successfully enrolled!', 'success');
+            loadCourses();
+        } catch (error) {
+            showMessage(
+                'messageContainer',
+                error.message || 'Failed to enroll',
+                'error'
+            );
+        }
+    }
+
+    // Init
+    loadCourses();
+</script>
+
+</body>
+</html>
