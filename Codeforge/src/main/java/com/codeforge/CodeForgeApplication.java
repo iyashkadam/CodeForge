@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class CodeForgeApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(CodeForgeApplication.class, args);
-	}
-
+        SpringApplication.run(CodeForgeApplication.class, args);
+    }
 }

@@ -43,7 +43,7 @@ public class SecurityConfig {
                 // ✅ Disable CSRF for JWT
                 .csrf(csrf -> csrf.disable())
 
-                // ✅ Stateless session
+                // ✅ Stateless sessio
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -69,11 +69,17 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // ✅ JWT Filter
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
+                // ✅ JWT Filter (Run my JWT filter before Spring’s default login authentication filter)
+                .addFilterBefore(jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class  // it handles user login with validating it
                 );
+                //        Request
+                //
+                //        JwtAuthenticationFilter  ✅ (extract + validate token)
+                //
+                //        UsernamePasswordAuthenticationFilter (skipped, already authenticated)
+                //
+                //        Controller
 
         return http.build();
     }
